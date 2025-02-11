@@ -64,7 +64,7 @@ void QtWrapper::run(QThread::Priority priority)
     handler.registerForSignal(QCtrlSignalHandler::SigInt);
     handler.registerForSignal(QCtrlSignalHandler::SigTerm);
 
-    QObject::connect(&handler, &QCtrlSignalHandler::ctrlSignal, [&handler](int signal) {
+    QObject::connect(&handler, &QCtrlSignalHandler::ctrlSignal, qApp, [&handler](int signal) {
         QCoreApplication::exit();
         handler.callPreviousHandler(signal);
     });
