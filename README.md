@@ -4,6 +4,7 @@ A library to catch and handle windows and unix signals, in a cross platform mann
 With this class, you can easily register for the Operation system signals (like `CTRL_C_EVENT` on windows and `SIGINT` on unix/linux) and use them just like normal Qt signals.
 
 ## Features
+- This fork adds the ability to call a handler that was set before subscribing to a signal by the QCtrlSignal library, this is necessary for a library based on Qt that requires Qt event loop, so the libarary can be integrated to a non Qt projects.
 - Register for common signals via a Cross-Platform enum
 - You can register native signals as well
 - Asynchronous signal handling. The class emits a Qt signal, and you can connect to this one just like to any other Qt signal
@@ -13,14 +14,7 @@ With this class, you can easily register for the Operation system signals (like 
 	- Windows: Can handle the `CTRL_CLOSE_EVENT`, which cannot be catched with the handler otherwise
 
 ## Installation
-The package is provided via qdep, as `Skycoder42/QCtrlSignals`. To use it simply:
-
-1. Install and enable qdep (See [qdep - Installing](https://github.com/Skycoder42/qdep#installation))
-2. Add the following to your pro file:
-```qmake
-QDEP_DEPENDS += Skycoder42/QCtrlSignals
-!load(qdep):error("Failed to load qdep feature! Run 'qdep.py prfgen --qmake $$QMAKE_QMAKE' to create it.")
-```
+The library can be compiled as shared library or included in any project as source using .pri file.
 
 ## Usage
 All you have to do is to get the signal handler instance via `QCtrlSignalHandler::instance()` and register your signals. See the example below
@@ -53,6 +47,31 @@ int main(int argc, char *argv[])
 
 	return a.exec();
 }
+```
+In the Qt library it is useful to preserve and call signal handler that was set by main non Qt application
+```cpp
+
+void QtWrapper::run(QThread::Priority priority)
+{
+    int fakeArgc = 1;
+    const char* fakeArgs[] = { "QtWrapper" };
+
+    QCoreApplication app(fakeArgc, const_cast<char**>(fakeArgs));
+    QThread::currentThread()->setPriority(priority);
+
+    QCtrlSignalHandlerInstance handler;
+
+    handler.registerForSignal(QCtrlSignalHandler::SigInt);
+    handler.registerForSignal(QCtrlSignalHandler::SigTerm);
+
+    QObject::connect(&handler, &QCtrlSignalHandler::ctrlSignal, [&handler](int signal) {
+        QCoreApplication::exit();
+        handler.callPreviousHandler(signal);
+    });
+
+    app.exec();
+}
+
 ```
 
 ### Logging
