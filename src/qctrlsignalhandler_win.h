@@ -17,12 +17,14 @@ public:
 
 	QReadWriteLock *lock() const override;
 
+    void callPreviousHandler(int sig) override;
 private:
 	mutable QReadWriteLock rwLock;
 
 	bool handleAutoQuit(DWORD signal);
 
 	static BOOL WINAPI HandlerRoutine(_In_ DWORD dwCtrlType);
+
 };
 
 #endif // QCTRLSIGNALHANDLER_WIN_H

@@ -60,7 +60,13 @@ void QCtrlSignalHandlerWin::changeAutoQuitMode(bool) {}
 
 QReadWriteLock *QCtrlSignalHandlerWin::lock() const
 {
-	return &rwLock;
+    return &rwLock;
+}
+
+void QCtrlSignalHandlerWin::callPreviousHandler(int sig)
+{
+    Q_UNUSED(sig)
+    ::ExitProcess(EXIT_SUCCESS);
 }
 
 bool QCtrlSignalHandlerWin::handleAutoQuit(DWORD signal)

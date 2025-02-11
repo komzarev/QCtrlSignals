@@ -54,7 +54,12 @@ bool QCtrlSignalHandler::unregisterFromSignal(int signal)
 bool QCtrlSignalHandler::isAutoQuitActive() const
 {
 	QReadLocker lock{d->lock()};
-	return d->autoQuit;
+    return d->autoQuit;
+}
+
+void QCtrlSignalHandler::callPreviousHandler(int signal)
+{
+    d->callPreviousHandler(signal);
 }
 
 void QCtrlSignalHandler::setAutoQuitActive(bool autoQuitActive)

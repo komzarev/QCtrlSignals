@@ -25,7 +25,7 @@ public:
 	bool autoQuit = false;
 
 	virtual QReadWriteLock *lock() const = 0;
-
+    virtual void callPreviousHandler(int sig) = 0;
 protected:
 	QCtrlSignalHandlerPrivate(QCtrlSignalHandler *q);
 

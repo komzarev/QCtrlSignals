@@ -12,6 +12,7 @@
 #else
 #include <csignal>
 #endif
+#include "qctrlsignal_global.h"
 
 class QCtrlSignalHandlerPrivate;
 //! A class to listen for "CTRL-Signals"
@@ -47,6 +48,7 @@ public:
 	//! READ-Accessor for QCtrlSignalHandler::autoQuitActive
 	bool isAutoQuitActive() const;
 
+    void callPreviousHandler(int signal);
 public Q_SLOTS:
 	//! WRITE-Accessor for QCtrlSignalHandler::autoQuitActive
 	void setAutoQuitActive(bool autoQuitActive);

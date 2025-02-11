@@ -17,7 +17,7 @@ public:
 	bool unregisterSignal(int signal) override;
 	void changeAutoQuitMode(bool enabled) override;
 	QReadWriteLock *lock() const override;
-
+    void callPreviousHandler(int sig) override;
 private Q_SLOTS:
 	void socketNotifyTriggerd(int socket);
 
@@ -31,6 +31,9 @@ private:
 	static const QVector<int> shutSignals;
 
 	static void unixSignalHandler(int signal);
+    typedef	void (*pHandler)(int);
+    QMap<int,pHandler> prevHandlers_;
+
 };
 
 #endif // QCTRLSIGNALHANDLER_UNIX_H

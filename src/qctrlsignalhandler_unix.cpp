@@ -2,6 +2,8 @@
 #include <QCoreApplication>
 #include <unistd.h>
 #include <sys/socket.h>
+#include <signal.h>
+#include <fcntl.h>
 
 int QCtrlSignalHandlerUnix::sockpair[2];
 const QVector<int> QCtrlSignalHandlerUnix::shutSignals = {SIGINT, SIGTERM, SIGQUIT, SIGHUP};
@@ -52,7 +54,22 @@ void QCtrlSignalHandlerUnix::changeAutoQuitMode(bool enabled)
 
 QReadWriteLock *QCtrlSignalHandlerUnix::lock() const
 {
-	return nullptr;//no locks needed on unix
+    return nullptr;//no locks needed on unix
+}
+
+void QCtrlSignalHandlerUnix::callPreviousHandler(int sig)
+{
+    if(prevHandlers_.contains(sig)){
+        auto handl = prevHandlers_[sig];
+        if(handl == SIG_DFL){
+            signal(sig, SIG_DFL);
+            raise(sig);
+        } else if(handl == SIG_IGN){
+            return;
+        } else {
+            handl(sig);
+        }
+    }
 }
 
 void QCtrlSignalHandlerUnix::socketNotifyTriggerd(int socket)
@@ -62,8 +79,9 @@ void QCtrlSignalHandlerUnix::socketNotifyTriggerd(int socket)
 		if(!reportSignalTriggered(signal) &&
 		   isAutoQuitRegistered(signal))
 			qApp->quit();
-	} else
+    } else {
 		qCWarning(logQCtrlSignals) << "Failed to read signal from socket pair";
+    }
 }
 
 bool QCtrlSignalHandlerUnix::isAutoQuitRegistered(int signal) const
@@ -74,25 +92,24 @@ bool QCtrlSignalHandlerUnix::isAutoQuitRegistered(int signal) const
 		return false;
 }
 
-bool QCtrlSignalHandlerUnix::updateSignalHandler(int signal, bool active)
+bool QCtrlSignalHandlerUnix::updateSignalHandler(int sig, bool active)
 {
-	struct sigaction action;
-	action.sa_handler = active ? QCtrlSignalHandlerUnix::unixSignalHandler : SIG_DFL;
-	sigemptyset(&action.sa_mask);
-	action.sa_flags |= SA_RESTART;
-	if(::sigaction(signal, &action, nullptr) == 0)
-		return true;
-	else {
-		qCWarning(logQCtrlSignals).noquote() << "Failed to"
-											 << (active ? "register" : "unregister")
-											 << "signal with error:"
-											 << qt_error_string();
-		return false;
-	}
+    if(active)  {
+        auto prevHandler = signal(sig, &QCtrlSignalHandlerUnix::unixSignalHandler);
+        if(prevHandler != QCtrlSignalHandlerUnix::unixSignalHandler){
+            prevHandlers_.insert(sig,prevHandler);
+        }
+
+        signal(sig, QCtrlSignalHandlerUnix::unixSignalHandler);
+    } else {
+        signal(sig, SIG_DFL);
+    }
+
+    return true;
 }
 
 void QCtrlSignalHandlerUnix::unixSignalHandler(int signal)
 {
 	const auto wr = ::write(sockpair[0], &signal, sizeof(int));
-	Q_UNUSED(wr);
+    Q_UNUSED(wr)
 }
